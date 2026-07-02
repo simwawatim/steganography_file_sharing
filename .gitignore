@@ -1,0 +1,42 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+db.sqlite3
+media/
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Environment variables
+.env
+.env.*
+
+# Django static files (if collected locally)
+staticfiles/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Migrations cache (optional - ONLY if you know what you're doing)
+# */migrations/__pycache__/
+
+# pytest / coverage
+.coverage
+htmlcov/
+
+# Celery / background task logs
+celerybeat-schedule
+
+# Jupyter Notebook
+.ipynb_checkpoints/
