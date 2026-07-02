@@ -1,5 +1,5 @@
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
 from rest_framework import serializers
 from core.models import UserProfile
 
@@ -67,12 +67,36 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_profile_picture(self, obj):
         request = self.context.get("request")
 
-        try:
-            if obj.userprofile.profile_picture:
-                return request.build_absolute_uri(
-                    obj.userprofile.profile_picture.url
-                )
-        except UserProfile.DoesNotExist:
-            pass
+        profile = getattr(obj, "userprofile", None)
+        if profile and profile.profile_picture:
+            url = profile.profile_picture.url
+            return request.build_absolute_uri(url) if request else url
 
         return None
+    
+
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "first_name",
+            "last_name",
+            "email",
+        ]
+
+    def update(self, instance, validated_data):
+        instance.first_name = validated_data.get("first_name", instance.first_name)
+        instance.last_name = validated_data.get("last_name", instance.last_name)
+        instance.email = validated_data.get("email", instance.email)
+        instance.save()
+        return instance
+    
+
+
+class ProfilePictureSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.ImageField(required=True)
+
+    class Meta:
+        model = UserProfile
+        fields = ["profile_picture"]

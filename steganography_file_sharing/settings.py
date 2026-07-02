@@ -144,7 +144,19 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "File Sharing API",
-    "DESCRIPTION": "API documentation for authentication and file sharing system",
+    "TITLE": "Steganography File Sharing API",
+    "DESCRIPTION": (
+        "A secure backend API for hiding and sharing files using steganography techniques. "
+        "This system allows users to securely embed sensitive data inside media files "
+        "(such as images) and retrieve them through authenticated endpoints."
+    ),
     "VERSION": "1.0.0",
+    "COMPONENT_SPLIT_REQUEST": True,
+    "CONTACT": {
+        "name": "Steganography File Sharing Support",
+        "email": "support@yourdomain.com",
+    },
+    "LICENSE": {
+        "name": "Private License",
+    },
 }
