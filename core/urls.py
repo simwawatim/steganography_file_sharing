@@ -1,10 +1,21 @@
-from core.Views.Users.UsersView import (ProfileDetailView, ProfilePictureUpdateView, ProfileUpdateView, SignupView, LoginView)
+from core.Views.File.FileUploadView import FolderFilesView, UserFileDeleteView, UserFileDetailView, UserFileListView, UserFileUpdateView, UserFileUploadView
+from core.Views.Users.UsersView import ProfileDetailView, ProfilePictureUpdateView, ProfileUpdateView, SignupView, LoginView
+from core.Views.Folder.UserFolderView import UserFolderCreateView, UserFolderDetailView, UserFolderListView
 from django.urls import path
 
 urlpatterns = [
-    path("signup/", SignupView.as_view(), name="signup"),
-    path("login/", LoginView.as_view(), name="login"),
-    path("profile/", ProfileDetailView.as_view(), name="profile-detail"),
-    path("profile/update/", ProfileUpdateView.as_view(), name="profile-update"),
-    path("profile/picture/", ProfilePictureUpdateView.as_view(), name="profile-picture"),
+    path("signup/", SignupView.as_view()),
+    path("login/", LoginView.as_view()),
+    path("profile/", ProfileDetailView.as_view()),
+    path("profile/update/", ProfileUpdateView.as_view()),
+    path("profile/picture/", ProfilePictureUpdateView.as_view()),
+    path("folders/", UserFolderListView.as_view()),
+    path("folders/create/", UserFolderCreateView.as_view()),
+    path("folders/<int:pk>/", UserFolderDetailView.as_view()),
+    path("files/upload/", UserFileUploadView.as_view()),
+    path("files/", UserFileListView.as_view()),
+    path("files/<int:pk>/", UserFileDetailView.as_view()),
+    path("files/<int:pk>/update/", UserFileUpdateView.as_view()),
+    path("files/<int:pk>/delete/", UserFileDeleteView.as_view()),
+    path("folders/<int:folder_id>/files/", FolderFilesView.as_view()),
 ]

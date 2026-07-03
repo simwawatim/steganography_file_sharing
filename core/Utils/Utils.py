@@ -1,4 +1,10 @@
+from fileinput import filename
+
+
 class Utils:
+    def userFileUploadPath(self, instance, filename):
+        return f"users/user_{instance.user.id}/folders/{instance.folder.id}/{filename}"
+    
     def formatSerializerErrors(self, errors):
 
         if isinstance(errors, dict):
