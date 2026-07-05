@@ -1,28 +1,47 @@
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter
+from drf_spectacular.utils import OpenApiResponse, extend_schema, OpenApiExample, OpenApiParameter, inline_serializer
 from core.Serializers.File.UserFileSerializer import UserFileSerializer
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import status, serializers
 from rest_framework.response import Response
 from django.core.paginator import Paginator
 from rest_framework.views import APIView
-from rest_framework import status
+
 
 from core.models import UserFile, UserFolder
 from core.Utils.Utils import Utils
+from core.tasks import processUploadedFile
 
 UTILS_INSTANCE = Utils()
 
-
 @extend_schema(
     tags=["Files"],
-    request=UserFileSerializer,
-    responses={201: UserFileSerializer},
+    request=inline_serializer(
+        name="MultipleFileUpload",
+        fields={
+            "folder": serializers.IntegerField(),
+            "files": serializers.ListField(
+                child=serializers.FileField(),
+                help_text="Upload one or more files",
+            ),
+        },
+    ),
+    responses={
+        201: OpenApiResponse(
+            description="Files uploaded successfully",
+            response=UserFileSerializer(many=True),
+        )
+    },
     examples=[
         OpenApiExample(
-            "Upload File",
+            "Multiple Upload",
             value={
-                "file": "example.png",
-                "folder": 1
+                "folder": 1,
+                "files": [
+                    "<file1>",
+                    "<file2>",
+                    "<file3>",
+                ],
             },
             request_only=True,
         )
@@ -33,27 +52,53 @@ class UserFileUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        serializer = UserFileSerializer(data=request.data)
+        folder = request.data.get("folder")
+        files = request.FILES.getlist("files")
 
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-
+        if not files:
             return Response(
                 {
-                    "status": "success",
-                    "message": "File uploaded successfully",
-                    "data": serializer.data,
+                    "status": "fail",
+                    "message": "No files were uploaded.",
+                    "data": None,
                 },
-                status=status.HTTP_201_CREATED,
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
+        uploaded_files = []
+
+        for file in files:
+            serializer = UserFileSerializer(
+                data={
+                    "file": file,
+                    "folder": folder,
+                }
+            )
+
+            if serializer.is_valid():
+                saved_file = serializer.save(user=request.user)
+
+                processUploadedFile.delay(saved_file.id)
+                uploaded_files.append(serializer.data)
+            else:
+                return Response(
+                    {
+                        "status": "fail",
+                        "message": UTILS_INSTANCE.formatSerializerErrors(
+                            serializer.errors
+                        ),
+                        "data": None,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         return Response(
             {
-                "status": "fail",
-                "message": UTILS_INSTANCE.formatSerializerErrors(serializer.errors),
-                "data": None,
+                "status": "success",
+                "message": f"{len(uploaded_files)} file(s) uploaded successfully.",
+                "data": uploaded_files,
             },
-            status=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_201_CREATED,
         )
 
 

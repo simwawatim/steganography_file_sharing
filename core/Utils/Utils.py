@@ -1,5 +1,3 @@
-from fileinput import filename
-
 
 class Utils:
     def userFileUploadPath(self, instance, filename):

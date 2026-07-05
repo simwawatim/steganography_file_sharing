@@ -1,4 +1,5 @@
 from core.Views.File.FileUploadView import FolderFilesView, UserFileDeleteView, UserFileDetailView, UserFileListView, UserFileUpdateView, UserFileUploadView
+from core.Views.File.SharedFileViews import ReceivedSharedFilesView, ShareFileWithSecretView, SharedFileDetailView
 from core.Views.Users.UsersView import ProfileDetailView, ProfilePictureUpdateView, ProfileUpdateView, SignupView, LoginView
 from core.Views.Folder.UserFolderView import UserFolderCreateView, UserFolderDetailView, UserFolderListView
 from django.urls import path
@@ -18,4 +19,7 @@ urlpatterns = [
     path("files/<int:pk>/update/", UserFileUpdateView.as_view()),
     path("files/<int:pk>/delete/", UserFileDeleteView.as_view()),
     path("folders/<int:folder_id>/files/", FolderFilesView.as_view()),
+    path("files/share-secret/", ShareFileWithSecretView.as_view()),
+    path("shared-files/received/", ReceivedSharedFilesView.as_view()),
+    path("shared-files/<int:file_id>/", SharedFileDetailView.as_view()),
 ]

@@ -9,9 +9,10 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
-import os
+from cryptography.fernet import Fernet
 from pathlib import Path
+import os
+
 
 from dotenv import load_dotenv
 
@@ -160,3 +161,16 @@ SPECTACULAR_SETTINGS = {
         "name": "Private License",
     },
 }
+
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
+
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+
+CELERY_TIMEZONE = "Africa/Lusaka"
+
+
+
+FERNET_KEY = Fernet.generate_key()
