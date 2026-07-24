@@ -1,4 +1,7 @@
+
 from core.Serializers.Users.UsersSerializer import ProfilePictureSerializer, ProfileUpdateSerializer, SignupSerializer, LoginSerializer, UserProfileSerializer
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.exceptions import TokenError
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -8,6 +11,9 @@ from rest_framework.views import APIView
 from core.models import UserProfile
 from core.Utils.Utils import Utils
 from rest_framework import status
+
+
+UTILS_INSTANCE = Utils()
 
 
 
@@ -211,3 +217,99 @@ class ProfilePictureUpdateView(APIView):
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+
+
+@extend_schema(
+    tags=["Profile"],
+    responses={200: ProfilePictureSerializer},
+    description="Retrieve the logged-in user's profile picture.",
+)
+class ProfilePictureDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+        serializer = ProfilePictureSerializer(
+            profile,
+            context={"request": request},
+        )
+
+        return Response({
+            "status": "success",
+            "message": "Profile picture retrieved successfully",
+            "data": serializer.data,
+        }, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=["Auth"],
+    request=TokenRefreshSerializer,
+    responses={200: TokenRefreshSerializer},
+    examples=[
+        OpenApiExample(
+            "Refresh Token Example",
+            value={"refresh": "<refresh_token>"},
+            request_only=True,
+        )
+    ],
+)
+class RefreshTokenView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = TokenRefreshSerializer(data=request.data)
+
+        if serializer.is_valid():
+            return Response({
+                "status": "success",
+                "message": "Token refreshed successfully",
+                "data": serializer.validated_data,
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "status": "fail",
+            "message": UTILS_INSTANCE.formatSerializerErrors(serializer.errors),
+            "data": None,
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=["Auth"],
+    request=OpenApiExample(
+        "Logout Example",
+        value={"refresh": "<refresh_token>"},
+        request_only=True,
+    ),
+    responses={200: None},
+    description="Blacklist the refresh token to log the user out.",
+)
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+
+        if not refresh_token:
+            return Response({
+                "status": "fail",
+                "message": "Refresh token is required",
+                "data": None,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except TokenError:
+            return Response({
+                "status": "fail",
+                "message": "Invalid or expired token",
+                "data": None,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "status": "success",
+            "message": "Logout successful",
+            "data": None,
+        }, status=status.HTTP_200_OK)

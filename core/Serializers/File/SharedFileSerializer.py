@@ -1,12 +1,13 @@
-from core.services.crypto_utils import hybrid_decrypt
-from core.models import SharedFile, UserFile
-from django.contrib.auth.models import User
 from rest_framework import serializers
+from django.contrib.auth.models import User
 
+from core.models import SharedFile, UserFile
+from core.services.crypto_utils import extract_secret_from_image, hybrid_decrypt
+from PIL import Image
 
 
 class ShareFileWithSecretSerializer(serializers.Serializer):
-    
+
     file = serializers.PrimaryKeyRelatedField(queryset=UserFile.objects.none())
     recipient_username = serializers.CharField()
     message = serializers.CharField()
@@ -15,6 +16,7 @@ class ShareFileWithSecretSerializer(serializers.Serializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         request = self.context.get("request")
         if request:
             self.fields["file"].queryset = UserFile.objects.filter(user=request.user)
@@ -26,25 +28,33 @@ class ShareFileWithSecretSerializer(serializers.Serializer):
             raise serializers.ValidationError("Recipient does not exist.")
 
         request = self.context["request"]
+
         if recipient == request.user:
-            raise serializers.ValidationError("You cannot share a file with yourself.")
+            raise serializers.ValidationError("You cannot share with yourself.")
 
         if not hasattr(recipient, "userprofile") or not recipient.userprofile.public_key:
-            raise serializers.ValidationError("Recipient has no public key on file and cannot receive secret messages.")
+            raise serializers.ValidationError("Recipient has no public key.")
 
         return value
 
     def validate(self, attrs):
         request = self.context["request"]
+
         file_obj = attrs["file"]
 
-        if SharedFile.objects.filter(file=file_obj, shared_with__username=attrs["recipient_username"]).exists():
-            raise serializers.ValidationError("This file has already been shared with this user.")
+        if SharedFile.objects.filter(
+            file=file_obj,
+            shared_with__username=attrs["recipient_username"]
+        ).exists():
+            raise serializers.ValidationError("Already shared with this user.")
 
         return attrs
+    
+
 
 
 class SharedFileSerializer(serializers.ModelSerializer):
+
     file_name = serializers.CharField(source="file.original_name", read_only=True)
     shared_by_username = serializers.CharField(source="shared_by.username", read_only=True)
     shared_with_username = serializers.CharField(source="shared_with.username", read_only=True)
@@ -52,10 +62,17 @@ class SharedFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = SharedFile
         fields = [
-            "id", "file", "file_name",
-            "shared_by", "shared_by_username",
-            "shared_with", "shared_with_username",
-            "can_download", "carrier_image", "is_read", "shared_at",
+            "id",
+            "file",
+            "file_name",
+            "shared_by",
+            "shared_by_username",
+            "shared_with",
+            "shared_with_username",
+            "can_download",
+            "carrier_image",
+            "is_read",
+            "shared_at",
         ]
         read_only_fields = fields
 
@@ -63,9 +80,8 @@ class SharedFileSerializer(serializers.ModelSerializer):
     
 
 
-
-
 class SharedFileDetailsSerializer(serializers.ModelSerializer):
+
     file_name = serializers.CharField(source="file.original_name", read_only=True)
     shared_by_username = serializers.CharField(source="shared_by.username", read_only=True)
     shared_with_username = serializers.CharField(source="shared_with.username", read_only=True)
@@ -88,18 +104,27 @@ class SharedFileDetailsSerializer(serializers.ModelSerializer):
             "shared_at",
             "decrypted_message",
         ]
-
     def get_decrypted_message(self, obj):
         request = self.context.get("request")
-
-        if not obj.encrypted_payload:
-            return None
 
         if not request or not hasattr(request.user, "userprofile"):
             return None
 
         try:
+            image = Image.open(obj.carrier_image.path)
+
+            print(image.format, image.size, image.mode)  # Debugging line
+
+            # 1. Extract encrypted secret from image
+            encrypted_secret = extract_secret_from_image(image)
+            print(f"Encrypted secret extracted: {encrypted_secret}")  # Debugging line
+
+            # 2. Decrypt using private key
             private_key = request.user.userprofile.get_private_key()
-            return hybrid_decrypt(obj.encrypted_payload, private_key)
+            print(f"Private key used for decryption: {private_key}")  # Debugging line
+
+            return hybrid_decrypt(encrypted_secret, private_key)
+        
+
         except Exception:
             return None
