@@ -1,6 +1,7 @@
 
 from core.Serializers.Users.UsersSerializer import ProfilePictureSerializer, ProfileUpdateSerializer, SignupSerializer, LoginSerializer, UserProfileSerializer
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.exceptions import TokenError
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -19,6 +20,9 @@ UTILS_INSTANCE = Utils()
 
 UTILS_INSTANCE = Utils()
 
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 @extend_schema(
     tags=["Auth"],
@@ -312,4 +316,42 @@ class LogoutView(APIView):
             "status": "success",
             "message": "Logout successful",
             "data": None,
+        }, status=status.HTTP_200_OK)
+
+
+class UserListPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
+@extend_schema(
+    tags=["Users"],
+    responses={200: UserProfileSerializer(many=True)},
+    description="Retrieve a paginated list of all users in the system.",
+)
+class UserListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        users = User.objects.select_related("userprofile").order_by("id")
+
+        paginator = UserListPagination()
+        page = paginator.paginate_queryset(users, request)
+
+        serializer = UserProfileSerializer(
+            page,
+            many=True,
+            context={"request": request},
+        )
+
+        return Response({
+            "status": "success",
+            "message": "Users retrieved successfully",
+            "data": {
+                "count": paginator.page.paginator.count,
+                "next": paginator.get_next_link(),
+                "previous": paginator.get_previous_link(),
+                "results": serializer.data,
+            },
         }, status=status.HTTP_200_OK)

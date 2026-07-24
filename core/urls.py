@@ -1,13 +1,14 @@
 from core.Views.Dashboard.Stats import DashboardStatsView
 from core.Views.File.FileUploadView import FolderFilesView, UserFileDeleteView, UserFileDetailView, UserFileListView, UserFileUpdateView, UserFileUploadView
 from core.Views.File.SharedFileViews import ReceivedSharedFilesView, ShareFileWithSecretView, SharedFileDetailView
-from core.Views.Users.UsersView import LogoutView, ProfileDetailView, ProfilePictureDetailView, ProfilePictureUpdateView, ProfileUpdateView, RefreshTokenView, SignupView, LoginView
+from core.Views.Users.UsersView import LogoutView, ProfileDetailView, ProfilePictureDetailView, ProfilePictureUpdateView, ProfileUpdateView, RefreshTokenView, SignupView, LoginView, UserListView
 from core.Views.Folder.UserFolderView import UserFolderCreateView, UserFolderDetailView, UserFolderListView
 from django.urls import path
 
 urlpatterns = [
     path("signup/", SignupView.as_view()),
     path("login/", LoginView.as_view()),
+    path("users/", UserListView.as_view()),
     path("profile/", ProfileDetailView.as_view()),
     path("profile/update/", ProfileUpdateView.as_view()),
     path("profile/picture/", ProfilePictureUpdateView.as_view()),
