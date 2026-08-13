@@ -5,6 +5,8 @@ from core.models import SharedFile, UserFile
 from core.services.crypto_utils import extract_secret_from_image, hybrid_decrypt
 from PIL import Image
 
+from core.services.services import reveal_shared_secret
+
 
 class ShareFileWithSecretSerializer(serializers.Serializer):
 
@@ -79,15 +81,15 @@ class SharedFileSerializer(serializers.ModelSerializer):
 
     
 
-
+ 
 class SharedFileDetailsSerializer(serializers.ModelSerializer):
-
+ 
     file_name = serializers.CharField(source="file.original_name", read_only=True)
     shared_by_username = serializers.CharField(source="shared_by.username", read_only=True)
     shared_with_username = serializers.CharField(source="shared_with.username", read_only=True)
-
+ 
     decrypted_message = serializers.SerializerMethodField()
-
+ 
     class Meta:
         model = SharedFile
         fields = [
@@ -104,27 +106,15 @@ class SharedFileDetailsSerializer(serializers.ModelSerializer):
             "shared_at",
             "decrypted_message",
         ]
+ 
     def get_decrypted_message(self, obj):
-        request = self.context.get("request")
-
-        if not request or not hasattr(request.user, "userprofile"):
+        passphrase = self.context.get("passphrase")
+ 
+        if not passphrase:
             return None
-
+ 
         try:
-            image = Image.open(obj.carrier_image.path)
-
-            print(image.format, image.size, image.mode)  # Debugging line
-
-            # 1. Extract encrypted secret from image
-            encrypted_secret = extract_secret_from_image(image)
-            print(f"Encrypted secret extracted: {encrypted_secret}")  # Debugging line
-
-            # 2. Decrypt using private key
-            private_key = request.user.userprofile.get_private_key()
-            print(f"Private key used for decryption: {private_key}")  # Debugging line
-
-            return hybrid_decrypt(encrypted_secret, private_key)
-        
-
-        except Exception:
+            return reveal_shared_secret(obj, passphrase)
+        except ValueError:
             return None
+ 

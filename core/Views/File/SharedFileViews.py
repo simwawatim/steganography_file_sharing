@@ -1,5 +1,8 @@
-
-from core.Serializers.File.SharedFileSerializer import ShareFileWithSecretSerializer, SharedFileDetailsSerializer, SharedFileSerializer
+from core.Serializers.File.SharedFileSerializer import (
+    ShareFileWithSecretSerializer,
+    SharedFileDetailsSerializer,
+    SharedFileSerializer,
+)
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.parsers import MultiPartParser, FormParser
 from core.services.services import share_file_with_secret
@@ -9,9 +12,6 @@ from rest_framework.views import APIView
 from core.Utils.Utils import Utils
 from core.models import SharedFile
 from rest_framework import status
-
-
-
 
 
 UTILS_INSTANCE = Utils()
@@ -42,12 +42,11 @@ class ShareFileWithSecretView(APIView):
         data = serializer.validated_data
 
         try:
-            shared_file = share_file_with_secret(
+            shared_file, passphrase = share_file_with_secret(
                 sender=request.user,
                 recipient_username=data["recipient_username"],
                 file_obj=data["file"],
                 message=data["message"],
-                carrier_image_file=data["carrier_image"],
                 can_download=data.get("can_download", True),
             )
         except ValueError as e:
@@ -60,12 +59,13 @@ class ShareFileWithSecretView(APIView):
             {
                 "status": "success",
                 "message": "File shared with encrypted secret message successfully",
-                "data": SharedFileSerializer(shared_file).data,
+                "data": {
+                    **SharedFileSerializer(shared_file).data,
+                    "passphrase": passphrase,
+                },
             },
             status=status.HTTP_201_CREATED,
         )
-    
-
 
 
 @extend_schema(
@@ -90,8 +90,6 @@ class ReceivedSharedFilesView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-    
-
 
 
 @extend_schema(
@@ -100,7 +98,7 @@ class ReceivedSharedFilesView(APIView):
 )
 class SharedFileDetailView(APIView):
     permission_classes = [IsAuthenticated]
-
+ 
     def get(self, request, file_id):
         try:
             shared_file = SharedFile.objects.get(
@@ -116,12 +114,19 @@ class SharedFileDetailView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
-
+ 
+        passphrase = "12345"
+ 
+        serializer = SharedFileDetailsSerializer(
+            shared_file,
+            context={"request": request, "passphrase": passphrase},
+        )
+ 
         return Response(
             {
                 "status": "success",
                 "message": "Shared file fetched successfully",
-                "data": SharedFileDetailsSerializer(shared_file).data,
+                "data": serializer.data,
             },
             status=status.HTTP_200_OK,
         )

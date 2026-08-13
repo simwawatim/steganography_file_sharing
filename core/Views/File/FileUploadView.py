@@ -4,13 +4,12 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status, serializers
 from rest_framework.response import Response
-from django.core.paginator import Paginator
-from rest_framework.views import APIView
-
-
 from core.models import UserFile, UserFolder
-from core.Utils.Utils import Utils
+from django.core.paginator import Paginator
 from core.tasks import processUploadedFile
+from rest_framework.views import APIView
+from core.Utils.Utils import Utils
+
 
 UTILS_INSTANCE = Utils()
 

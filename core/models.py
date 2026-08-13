@@ -84,9 +84,6 @@ class UserFile(models.Model):
     def __str__(self):
         return self.original_name or self.file.name
     
-
-
-
 class SharedFile(models.Model):
     file = models.ForeignKey(UserFile, on_delete=models.CASCADE, related_name="shares")
     shared_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="shared_files_sent")
