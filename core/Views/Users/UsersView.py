@@ -101,6 +101,7 @@ class LoginView(APIView):
                 "data": {
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
+                    "is_superuser": user.is_superuser,
                     "user": UserProfileSerializer(
                         user,
                         context={"request": request},

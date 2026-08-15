@@ -48,11 +48,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_spectacular',
+    'corsheaders',
     'core',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -161,6 +163,22 @@ SPECTACULAR_SETTINGS = {
         "name": "Private License",
     },
 }
+
+# CORS
+# https://github.com/adamchainz/django-cors-headers
+#
+# Wildcard for now so the frontend (any origin/port during dev) can call this
+# API freely. CORS_ALLOW_ALL_ORIGINS and CORS_ALLOWED_ORIGINS are mutually
+# exclusive — before going to production, turn this off and replace it with an
+# explicit CORS_ALLOWED_ORIGINS allowlist of your real frontend origin(s).
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Only needed if you later switch from Authorization-header JWTs to
+# cookie-based auth (like the zicb_kyc CookieJWTAuthentication pattern) —
+# CORS_ALLOW_ALL_ORIGINS and CORS_ALLOW_CREDENTIALS=True cannot be combined,
+# so that switch would require swapping to an explicit CORS_ALLOWED_ORIGINS
+# list at the same time.
+CORS_ALLOW_CREDENTIALS = False
 
 CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
 CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"

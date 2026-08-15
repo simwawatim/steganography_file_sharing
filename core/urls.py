@@ -1,3 +1,6 @@
+from core.Views.Admin.Dashboard.api import AdminDashboardStatsView
+from core.Views.Admin.Files.api import FilesListView
+from core.Views.Admin.Users.api import UsersListView
 from core.Views.Dashboard.Stats import DashboardStatsView
 from core.Views.File.FileUploadView import FolderFilesView, UserFileDeleteView, UserFileDetailView, UserFileListView, UserFileUpdateView, UserFileUploadView
 from core.Views.File.SharedFileViews import ReceivedSharedFilesView, ShareFileWithSecretView, SharedFileDetailView
@@ -27,5 +30,10 @@ urlpatterns = [
     path("profile/picture/", ProfilePictureDetailView.as_view()),
     path("auth/token/refresh/", RefreshTokenView.as_view()),
     path("auth/logout/", LogoutView.as_view()),
-    path("dashboard/stats/", DashboardStatsView.as_view())
+    path("dashboard/stats/", DashboardStatsView.as_view()),
+    path("admin/dashboard/", AdminDashboardStatsView.as_view()),
+    path("admin/files/", FilesListView.as_view()),
+    path("admin/users/",  UsersListView.as_view())
+
+
 ]

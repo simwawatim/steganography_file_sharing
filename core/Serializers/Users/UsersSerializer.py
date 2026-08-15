@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.db.models import Q
 from rest_framework import serializers
 from core.models import UserProfile
 
@@ -31,16 +32,24 @@ class SignupSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
-
+ 
     def validate(self, attrs):
-        user = authenticate(
-            username=attrs["username"],
-            password=attrs["password"]
+        identifier = attrs["username"]
+        password = attrs["password"]
+ 
+        user_obj = User.objects.filter(
+            Q(email__iexact=identifier) | Q(username__iexact=identifier)
+        ).first()
+ 
+        user = (
+            authenticate(username=user_obj.username, password=password)
+            if user_obj
+            else None
         )
-
+ 
         if not user:
             raise serializers.ValidationError("Invalid username or password.")
-
+ 
         attrs["user"] = user
         return attrs
 
