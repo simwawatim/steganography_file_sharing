@@ -1,11 +1,11 @@
-from rest_framework import serializers
-from django.contrib.auth.models import User
-
-from core.models import SharedFile, UserFile
-from core.services.crypto_utils import extract_secret_from_image, hybrid_decrypt
-from PIL import Image
-
 from core.services.services import reveal_shared_secret
+from core.models import SharedFile, UserFile
+from django.contrib.auth.models import User
+from rest_framework import serializers
+
+
+
+
 
 
 class ShareFileWithSecretSerializer(serializers.Serializer):
@@ -13,7 +13,6 @@ class ShareFileWithSecretSerializer(serializers.Serializer):
     file = serializers.PrimaryKeyRelatedField(queryset=UserFile.objects.none())
     recipient_username = serializers.CharField()
     message = serializers.CharField()
-    carrier_image = serializers.ImageField()
     can_download = serializers.BooleanField(required=False, default=True)
 
     def __init__(self, *args, **kwargs):
