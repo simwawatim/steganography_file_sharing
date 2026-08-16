@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from core.models import UserFile
 
+from core.Utils.Logs.Decorators import log_activity
+
 
 class IsSuperUser(BasePermission):
 
@@ -52,6 +54,7 @@ class FilesListView(APIView):
 
     permission_classes = [IsAuthenticated, IsSuperUser]
 
+    @log_activity("admin.files.view", description="Admin viewed all-files list")
     def get(self, request):
         completed = UserFile.objects.all()
 

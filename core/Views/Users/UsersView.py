@@ -1,4 +1,3 @@
-
 from core.Serializers.Users.UsersSerializer import ProfilePictureSerializer, ProfileUpdateSerializer, SignupSerializer, LoginSerializer, UserProfileSerializer
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework.pagination import PageNumberPagination
@@ -13,16 +12,23 @@ from core.models import UserProfile
 from core.Utils.Utils import Utils
 from rest_framework import status
 
-
-UTILS_INSTANCE = Utils()
-
-
-
-UTILS_INSTANCE = Utils()
-
+from core.Utils.Logs.Decorators import log_activity
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
+UTILS_INSTANCE = Utils()
+
+
+def _user_by_submitted_username(request, response):
+    """Looks the account up by the username submitted in the request body -
+    works for both successful and failed signup/login attempts, since
+    request.user is AnonymousUser on AllowAny views regardless of outcome."""
+    username = request.data.get("username")
+    if not username:
+        return None
+    return User.objects.filter(username=username).first()
+
 
 @extend_schema(
     tags=["Auth"],
@@ -43,6 +49,11 @@ User = get_user_model()
 class SignupView(APIView):
     permission_classes = [AllowAny]
 
+    @log_activity(
+        "auth.signup",
+        description=lambda req, res: f"Signup attempt for username '{req.data.get('username')}'",
+        get_user=_user_by_submitted_username,
+    )
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
 
@@ -88,6 +99,13 @@ class SignupView(APIView):
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
+    @log_activity(
+        "auth.login",
+        description=lambda req, res: (
+            "Login succeeded" if res and res.status_code == 200 else "Login failed"
+        ),
+        get_user=_user_by_submitted_username,
+    )
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
 
@@ -115,6 +133,7 @@ class LoginView(APIView):
             "data": None,
         }, status=status.HTTP_400_BAD_REQUEST)
 
+
 @extend_schema(
     tags=["Profile"],
     responses={200: UserProfileSerializer},
@@ -122,6 +141,7 @@ class LoginView(APIView):
 class ProfileDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @log_activity("profile.view", description="Viewed own profile")
     def get(self, request):
         serializer = UserProfileSerializer(
             request.user,
@@ -133,6 +153,7 @@ class ProfileDetailView(APIView):
             "message": "Profile retrieved successfully",
             "data": serializer.data,
         }, status=status.HTTP_200_OK)
+
 
 @extend_schema(
     tags=["Profile"],
@@ -153,6 +174,10 @@ class ProfileDetailView(APIView):
 class ProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @log_activity(
+        "profile.update",
+        description=lambda req, res: f"Updated profile fields: {list(req.data.keys())}",
+    )
     def patch(self, request):
         serializer = ProfileUpdateSerializer(
             request.user,
@@ -179,7 +204,6 @@ class ProfileUpdateView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 @extend_schema(
     tags=["Profile"],
     request=ProfilePictureSerializer,
@@ -190,6 +214,7 @@ class ProfilePictureUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
+    @log_activity("profile.picture.update", description="Updated profile picture")
     def patch(self, request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
@@ -222,7 +247,6 @@ class ProfilePictureUpdateView(APIView):
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
-
 
 
 @extend_schema(
@@ -263,6 +287,7 @@ class ProfilePictureDetailView(APIView):
 class RefreshTokenView(APIView):
     permission_classes = [AllowAny]
 
+    @log_activity("auth.token_refresh", description="Refreshed access token")
     def post(self, request):
         serializer = TokenRefreshSerializer(data=request.data)
 
@@ -293,6 +318,7 @@ class RefreshTokenView(APIView):
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @log_activity("auth.logout", description="Logged out")
     def post(self, request):
         refresh_token = request.data.get("refresh")
 
@@ -334,6 +360,7 @@ class UserListPagination(PageNumberPagination):
 class UserListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @log_activity("user.list", description="Listed all users")
     def get(self, request):
         users = User.objects.select_related("userprofile").order_by("id")
 

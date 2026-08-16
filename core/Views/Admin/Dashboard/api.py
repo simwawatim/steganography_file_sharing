@@ -6,6 +6,8 @@ from rest_framework.views import APIView
 
 from core.models import UserFile, SharedFile
 
+from core.Utils.Logs.Decorators import log_activity
+
 
 class IsSuperUser(BasePermission):
     def has_permission(self, request, view):
@@ -60,6 +62,7 @@ def humanize_bytes(total_bytes: int) -> str:
 class AdminDashboardStatsView(APIView):
     permission_classes = [IsAuthenticated, IsSuperUser]
 
+    @log_activity("admin.dashboard.view", description="Admin viewed platform dashboard stats")
     def get(self, request):
         completed_files = UserFile.objects.all()
 

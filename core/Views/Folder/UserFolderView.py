@@ -8,6 +8,8 @@ from rest_framework import status
 from core.models import UserFolder
 from core.Utils.Utils import Utils
 
+from core.Utils.Logs.Decorators import log_activity
+
 UTILS_INSTANCE = Utils()
 
 
@@ -18,6 +20,7 @@ UTILS_INSTANCE = Utils()
 class UserFolderListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @log_activity("folder.list", description="Listed own folders")
     def get(self, request):
         folders = UserFolder.objects.filter(
             user=request.user
@@ -52,6 +55,10 @@ class UserFolderListView(APIView):
 class UserFolderCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @log_activity(
+        "folder.create",
+        description=lambda req, res: f"Created folder '{req.data.get('folder_name')}'",
+    )
     def post(self, request):
         serializer = UserFolderSerializer(data=request.data)
 
@@ -90,6 +97,10 @@ class UserFolderDetailView(APIView):
         except UserFolder.DoesNotExist:
             return None
 
+    @log_activity(
+        "folder.view",
+        description=lambda req, res: f"Viewed folder {req.parser_context['kwargs'].get('pk')}",
+    )
     def get(self, request, pk):
         folder = self.get_object(request, pk)
 
@@ -117,6 +128,10 @@ class UserFolderDetailView(APIView):
     @extend_schema(
         request=UserFolderSerializer,
         responses={200: UserFolderSerializer},
+    )
+    @log_activity(
+        "folder.update",
+        description=lambda req, res: f"Updated folder {req.parser_context['kwargs'].get('pk')} - fields: {list(req.data.keys())}",
     )
     def patch(self, request, pk):
         folder = self.get_object(request, pk)
@@ -158,6 +173,10 @@ class UserFolderDetailView(APIView):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    @log_activity(
+        "folder.delete",
+        description=lambda req, res: f"Deleted folder {req.parser_context['kwargs'].get('pk')}",
+    )
     def delete(self, request, pk):
         folder = self.get_object(request, pk)
 

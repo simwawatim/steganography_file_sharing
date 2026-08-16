@@ -8,6 +8,8 @@ from rest_framework import serializers, status
 
 from core.models import UserFile, UserFolder, SharedFile
 
+from core.Utils.Logs.Decorators import log_activity
+
 
 MAX_STORAGE_BYTES = 1 * 1024 * 1024 * 1024
 
@@ -98,6 +100,7 @@ class DashboardStatsSerializer(serializers.Serializer):
 class DashboardStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @log_activity("dashboard.view", description="Viewed dashboard stats")
     def get(self, request):
         user = request.user
         print("User: ", user)

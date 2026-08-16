@@ -4,6 +4,8 @@ from rest_framework.permissions import IsAuthenticated, BasePermission
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.Utils.Logs.Decorators import log_activity
+
 
 class IsSuperUser(BasePermission):
     """Same admin-only gate used across the other admin endpoints."""
@@ -54,6 +56,7 @@ class UsersListView(APIView):
 
     permission_classes = [IsAuthenticated, IsSuperUser]
 
+    @log_activity("admin.users.view", description="Admin viewed all-users list")
     def get(self, request):
         users_qs = User.objects.all()
 

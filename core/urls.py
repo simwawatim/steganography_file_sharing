@@ -1,5 +1,6 @@
 from core.Views.Admin.Dashboard.api import AdminDashboardStatsView
 from core.Views.Admin.Files.api import FilesListView
+from core.Views.Admin.Logs.LogView import ActivityLogDetailView, ActivityLogListView
 from core.Views.Admin.Users.api import UsersListView
 from core.Views.Dashboard.Stats import DashboardStatsView
 from core.Views.File.FileUploadView import FolderFilesView, UserFileDeleteView, UserFileDetailView, UserFileListView, UserFileUpdateView, UserFileUploadView
@@ -33,7 +34,9 @@ urlpatterns = [
     path("dashboard/stats/", DashboardStatsView.as_view()),
     path("admin/dashboard/", AdminDashboardStatsView.as_view()),
     path("admin/files/", FilesListView.as_view()),
-    path("admin/users/",  UsersListView.as_view())
+    path("admin/users/",  UsersListView.as_view()),
+    path("logs/", ActivityLogListView.as_view()),
+    path("logs/<int:pk>/", ActivityLogDetailView.as_view()),
 
 
 ]

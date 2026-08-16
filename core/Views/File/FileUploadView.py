@@ -10,8 +10,11 @@ from core.tasks import processUploadedFile
 from rest_framework.views import APIView
 from core.Utils.Utils import Utils
 
+from core.Utils.Logs.Decorators import log_activity
+
 
 UTILS_INSTANCE = Utils()
+
 
 @extend_schema(
     tags=["Files"],
@@ -50,6 +53,10 @@ class UserFileUploadView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
+    @log_activity(
+        "file.upload",
+        description=lambda req, res: f"Uploaded {len(req.FILES.getlist('files'))} file(s)",
+    )
     def post(self, request):
         folder = request.data.get("folder")
         files = request.FILES.getlist("files")
@@ -108,6 +115,7 @@ class UserFileUploadView(APIView):
 class UserFileListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @log_activity("file.list", description="Listed own files")
     def get(self, request):
         files = UserFile.objects.filter(user=request.user).order_by("-uploaded_at")
         serializer = UserFileSerializer(files, many=True)
@@ -135,6 +143,10 @@ class UserFileDetailView(APIView):
         except UserFile.DoesNotExist:
             return None
 
+    @log_activity(
+        "file.view",
+        description=lambda req, res: f"Viewed file {req.parser_context['kwargs'].get('pk')}",
+    )
     def get(self, request, pk):
         file_obj = self.get_object(request, pk)
 
@@ -174,6 +186,10 @@ class UserFileUpdateView(APIView):
         except UserFile.DoesNotExist:
             return None
 
+    @log_activity(
+        "file.update",
+        description=lambda req, res: f"Updated file {req.parser_context['kwargs'].get('pk')} - fields: {list(req.data.keys())}",
+    )
     def patch(self, request, pk):
         file_obj = self.get_object(request, pk)
 
@@ -228,6 +244,10 @@ class UserFileDeleteView(APIView):
         except UserFile.DoesNotExist:
             return None
 
+    @log_activity(
+        "file.delete",
+        description=lambda req, res: f"Deleted file {req.parser_context['kwargs'].get('pk')}",
+    )
     def delete(self, request, pk):
         file_obj = self.get_object(request, pk)
 
@@ -251,46 +271,7 @@ class UserFileDeleteView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-    
 
-
-@extend_schema(
-    tags=["Files"],
-    responses={200: UserFileSerializer},
-)
-class UserFileDetailView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get_object(self, request, pk):
-        try:
-            return UserFile.objects.get(pk=pk, user=request.user)
-        except UserFile.DoesNotExist:
-            return None
-
-    def get(self, request, pk):
-        file_obj = self.get_object(request, pk)
-
-        if not file_obj:
-            return Response(
-                {
-                    "status": "fail",
-                    "message": "File not found",
-                    "data": None,
-                },
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        serializer = UserFileSerializer(file_obj)
-
-        return Response(
-            {
-                "status": "success",
-                "message": "File retrieved successfully",
-                "data": serializer.data,
-            },
-            status=status.HTTP_200_OK,
-        )
-    
 
 @extend_schema(
     tags=["Files"],
@@ -302,6 +283,10 @@ class UserFileDetailView(APIView):
 class FolderFilesView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @log_activity(
+        "folder.files.view",
+        description=lambda req, res: f"Viewed files in folder {req.parser_context['kwargs'].get('folder_id')}",
+    )
     def get(self, request, folder_id):
         try:
             folder = UserFolder.objects.get(id=folder_id, user=request.user)
@@ -319,7 +304,6 @@ class FolderFilesView(APIView):
             folder=folder,
             user=request.user
         ).order_by("-uploaded_at")
-
 
         total_files = files_qs.count()
 
@@ -361,4 +345,3 @@ class FolderFilesView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-

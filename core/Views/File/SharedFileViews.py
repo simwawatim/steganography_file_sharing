@@ -9,6 +9,8 @@ from core.Utils.Utils import Utils
 from core.models import SharedFile
 from rest_framework import status
 
+from core.Utils.Logs.Decorators import log_activity
+
 
 UTILS_INSTANCE = Utils()
 
@@ -22,6 +24,10 @@ class ShareFileWithSecretView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
+    @log_activity(
+        "file.share",
+        description=lambda req, res: f"Shared file with {req.data.get('recipient_username')}",
+    )
     def post(self, request):
         serializer = ShareFileWithSecretSerializer(data=request.data, context={"request": request})
 
@@ -71,6 +77,7 @@ class ShareFileWithSecretView(APIView):
 class ReceivedSharedFilesView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @log_activity("file.share.list_received", description="Listed received shared files")
     def get(self, request):
         shared_files = SharedFile.objects.filter(
             shared_with=request.user
@@ -94,7 +101,11 @@ class ReceivedSharedFilesView(APIView):
 )
 class SharedFileDetailView(APIView):
     permission_classes = [IsAuthenticated]
- 
+
+    @log_activity(
+        "file.share.view",
+        description=lambda req, res: f"Viewed shared file {req.parser_context['kwargs'].get('file_id')}",
+    )
     def get(self, request, file_id):
         try:
             shared_file = SharedFile.objects.get(
@@ -110,14 +121,14 @@ class SharedFileDetailView(APIView):
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
- 
+
         passphrase = "12345"
- 
+
         serializer = SharedFileDetailsSerializer(
             shared_file,
             context={"request": request, "passphrase": passphrase},
         )
- 
+
         return Response(
             {
                 "status": "success",

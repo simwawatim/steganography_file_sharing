@@ -1,3 +1,5 @@
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.models import User
 from cryptography.fernet import Fernet
 from django.conf import settings
@@ -101,3 +103,48 @@ class SharedFile(models.Model):
 
     def __str__(self):
         return f"{self.file.original_name} → {self.shared_with.username}"
+
+
+
+
+class ActivityLog(models.Model):
+    class ActionStatus(models.TextChoices):
+        SUCCESS = "success"
+        FAILURE = "failure"
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activity_logs",
+    )
+
+    action = models.CharField(max_length=100)
+    description = models.CharField(max_length=255, blank=True)
+    status = models.CharField(
+        max_length=10,
+        choices=ActionStatus.choices,
+        default=ActionStatus.SUCCESS,
+    )
+
+    content_type = models.ForeignKey(
+        ContentType, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    target = GenericForeignKey("content_type", "object_id")
+
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    metadata = models.JSONField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["action", "-created_at"]),
+            models.Index(fields=["user", "-created_at"]),
+        ]
+
+    def __str__(self):
+        who = self.user.username if self.user else "anonymous"
+        return f"[{self.created_at:%Y-%m-%d %H:%M}] {who} - {self.action}"
