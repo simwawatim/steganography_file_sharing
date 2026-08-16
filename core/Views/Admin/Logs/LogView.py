@@ -43,32 +43,41 @@ def parse_pagination(request, default_size=20, max_size=100):
         OpenApiParameter(name="user_id", type=int, description="Filter by user ID"),
     ],
     responses={200: ActivityLogListSerializer(many=True)},
-    description="Paginated list of activity logs - basic info only. Use the detail endpoint for the full picture on a single entry.",
+    description="Paginated list of activity logs with summary stats - basic info only. Use the detail endpoint for the full picture on a single entry.",
 )
 class ActivityLogListView(APIView):
     permission_classes = [IsAuthenticated, IsSuperUser]
 
     @log_activity("admin.logs.list", description="Admin viewed activity log list")
     def get(self, request):
-        logs_qs = ActivityLog.objects.select_related("user").all()
+        base_qs = ActivityLog.objects.all()
 
         action = request.query_params.get("action")
+        status_filter = request.query_params.get("status")
+        user_id = request.query_params.get("user_id")
+
+        logs_qs = base_qs
         if action:
             logs_qs = logs_qs.filter(action=action)
-
-        status_filter = request.query_params.get("status")
         if status_filter in (ActivityLog.ActionStatus.SUCCESS, ActivityLog.ActionStatus.FAILURE):
             logs_qs = logs_qs.filter(status=status_filter)
-
-        user_id = request.query_params.get("user_id")
         if user_id:
             logs_qs = logs_qs.filter(user_id=user_id)
 
         total = logs_qs.count()
 
+        # Stats always reflect the full table, not the current filter, so the
+        # stat cards stay stable while the table beneath them gets filtered.
+        total_records = base_qs.count()
+        successful = base_qs.filter(status=ActivityLog.ActionStatus.SUCCESS).count()
+        failed = base_qs.filter(status=ActivityLog.ActionStatus.FAILURE).count()
+
+        distinct_actions = set(base_qs.values_list("action", flat=True))
+        active_modules = len({a.split(".")[0] for a in distinct_actions if a})
+
         page, page_size = parse_pagination(request)
         offset = (page - 1) * page_size
-        page_items = logs_qs[offset : offset + page_size]
+        page_items = logs_qs.select_related("user")[offset : offset + page_size]
 
         serializer = ActivityLogListSerializer(page_items, many=True)
 
@@ -78,6 +87,12 @@ class ActivityLogListView(APIView):
             "status": "success",
             "message": "Activity logs retrieved successfully",
             "data": {
+                "stats": {
+                    "total_records": total_records,
+                    "successful": successful,
+                    "failed": failed,
+                    "active_modules": active_modules,
+                },
                 "logs": serializer.data,
                 "pagination": {
                     "page": page,
