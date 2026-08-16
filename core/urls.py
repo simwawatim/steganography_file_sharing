@@ -4,7 +4,7 @@ from core.Views.Admin.Logs.LogView import ActivityLogDetailView, ActivityLogList
 from core.Views.Admin.Users.api import UsersListView
 from core.Views.Dashboard.Stats import DashboardStatsView
 from core.Views.File.FileUploadView import FolderFilesView, UserFileDeleteView, UserFileDetailView, UserFileListView, UserFileUpdateView, UserFileUploadView
-from core.Views.File.SharedFileViews import ReceivedSharedFilesView, ShareFileWithSecretView, SharedFileDetailView
+from core.Views.File.SharedFileViews import ReceivedSharedFilesView, SentSharedFileDetailView, SentSharedFilesView, ShareFileWithSecretView, SharedFileDetailView
 from core.Views.Users.UsersView import LogoutView, ProfileDetailView, ProfilePictureDetailView, ProfilePictureUpdateView, ProfileUpdateView, RefreshTokenView, SignupView, LoginView, UserListView
 from core.Views.Folder.UserFolderView import UserFolderCreateView, UserFolderDetailView, UserFolderListView
 from django.urls import path
@@ -27,7 +27,9 @@ urlpatterns = [
     path("folders/<int:folder_id>/files/", FolderFilesView.as_view()),
     path("files/share-secret/", ShareFileWithSecretView.as_view()),
     path("shared-files/received/", ReceivedSharedFilesView.as_view()),
-    path("shared-files/<int:file_id>/", SharedFileDetailView.as_view()),
+    path("shared-files/sent/", SentSharedFilesView.as_view()),
+    path("shared-files/sent/<int:file_id>/", SentSharedFileDetailView.as_view()),
+    path("shared-files/received/<int:file_id>/", SharedFileDetailView.as_view()),
     path("profile/picture/", ProfilePictureDetailView.as_view()),
     path("auth/token/refresh/", RefreshTokenView.as_view()),
     path("auth/logout/", LogoutView.as_view()),

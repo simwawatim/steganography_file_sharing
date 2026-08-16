@@ -137,3 +137,72 @@ class SharedFileDetailView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+@extend_schema(
+    tags=["File Sharing"],
+    responses={200: SharedFileSerializer(many=True)},
+)
+class SentSharedFilesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @log_activity("file.share.list_sent", description="Listed sent shared files")
+    def get(self, request):
+        shared_files = SharedFile.objects.filter(
+            shared_by=request.user
+        ).order_by("-id")
+
+        serializer = SharedFileSerializer(shared_files, many=True)
+
+        return Response(
+            {
+                "status": "success",
+                "message": "Sent shared files fetched successfully",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(
+    tags=["File Sharing"],
+    responses={200: SharedFileDetailsSerializer},
+)
+class SentSharedFileDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @log_activity(
+        "file.share.view_sent",
+        description=lambda req, res: f"Viewed sent shared file {req.parser_context['kwargs'].get('file_id')}",
+    )
+    def get(self, request, file_id):
+        try:
+            shared_file = SharedFile.objects.get(
+                id=file_id,
+                shared_by=request.user
+            )
+        except SharedFile.DoesNotExist:
+            return Response(
+                {
+                    "status": "fail",
+                    "message": "Shared file not found",
+                    "data": None,
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        passphrase = "12345"
+
+        serializer = SharedFileDetailsSerializer(
+            shared_file,
+            context={"request": request, "passphrase": passphrase},
+        )
+
+        return Response(
+            {
+                "status": "success",
+                "message": "Shared file fetched successfully",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
